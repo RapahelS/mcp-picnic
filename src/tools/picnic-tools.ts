@@ -1,7 +1,6 @@
 import { z } from "zod"
 import { toolRegistry } from "./registry.js"
 import { getPicnicClient, initializePicnicClient } from "../utils/picnic-client.js"
-import { config } from "../config.js"
 
 /**
  * Picnic API tools optimized for LLM consumption
@@ -19,7 +18,7 @@ async function ensureClientInitialized() {
     getPicnicClient()
   } catch (error) {
     // Client not initialized, initialize it now
-    await initializePicnicClient(undefined, undefined, config.PICNIC_COUNTRY_CODE)
+    await initializePicnicClient()
   }
 }
 
