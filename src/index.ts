@@ -7,7 +7,7 @@ import { initializePicnicClient } from "./utils/picnic-client.js"
 
 // Create and start the appropriate server
 async function runServer() {
-  await initializePicnicClient()
+  await initializePicnicClient(undefined, undefined, config.PICNIC_COUNTRY_CODE)
 
   if (config.ENABLE_HTTP_SERVER) {
     // Start HTTP server
