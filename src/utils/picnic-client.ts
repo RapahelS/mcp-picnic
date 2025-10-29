@@ -7,7 +7,7 @@ let picnicClientInstance: InstanceType<typeof PicnicClient> | null = null
 export async function initializePicnicClient(
   username?: string,
   password?: string,
-  countryCode: "NL" | "DE" = "NL",
+  countryCode?: "NL" | "DE",
   apiVersion: string = "15",
 ): Promise<void> {
   if (picnicClientInstance) {
@@ -15,13 +15,14 @@ export async function initializePicnicClient(
   }
 
   console.error("Initializing Picnic client...")
-  const client = new PicnicClient({
-    countryCode,
-    apiVersion,
-  })
-
   const loginUsername = username || config.PICNIC_USERNAME
   const loginPassword = password || config.PICNIC_PASSWORD
+  const loginCountryCode = countryCode || config.PICNIC_COUNTRY_CODE
+
+  const client = new PicnicClient({
+    countryCode: loginCountryCode,
+    apiVersion,
+  })
 
   await client.login(loginUsername, loginPassword)
   picnicClientInstance = client

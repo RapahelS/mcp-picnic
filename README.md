@@ -73,14 +73,17 @@ Add this configuration:
       "args": ["-y", "mcp-picnic"],
       "env": {
         "PICNIC_USERNAME": "your-picnic-email@example.com",
-        "PICNIC_PASSWORD": "your-picnic-password"
+        "PICNIC_PASSWORD": "your-picnic-password",
+        "PICNIC_COUNTRY_CODE": "NL"
       }
     }
   }
 }
 ```
 
-**Important**: Replace `your-picnic-email@example.com` and `your-picnic-password` with your actual Picnic account credentials.
+**Important**:
+- Replace `your-picnic-email@example.com` and `your-picnic-password` with your actual Picnic account credentials.
+- Set `PICNIC_COUNTRY_CODE` to `"DE"` if your Picnic account is registered in Germany. If you're in the Netherlands, you can omit this field or set it to `"NL"`.
 
 3. **Restart Claude Desktop** completely
 
@@ -338,14 +341,38 @@ You can configure the server using environment variables:
 PICNIC_USERNAME=your-picnic-email@example.com
 PICNIC_PASSWORD=your-picnic-password
 
+# Country Configuration (optional, defaults to NL)
+# Set this to match your Picnic account's country
+# Supported values: NL (Netherlands), DE (Germany)
+PICNIC_COUNTRY_CODE=NL
+
 # HTTP Transport settings (optional)
 ENABLE_HTTP_SERVER=true
 HTTP_PORT=3000
 HTTP_HOST=localhost
 
 # Picnic API settings (optional)
-PICNIC_COUNTRY_CODE=NL  # or DE
 PICNIC_API_VERSION=15
+```
+
+#### Country Configuration
+
+The `PICNIC_COUNTRY_CODE` setting determines which Picnic regional API to connect to. This **must match your Picnic account's country** for authentication to work correctly.
+
+- **Default**: `NL` (Netherlands)
+- **Supported values**:
+  - `NL` - Netherlands (🇳🇱)
+  - `DE` - Germany (🇩🇪)
+
+**When to set this:**
+- If your Picnic account is registered in Germany, you **must** set `PICNIC_COUNTRY_CODE=DE`
+- If your Picnic account is in the Netherlands, you can omit this setting (defaults to `NL`)
+
+**Example for German accounts:**
+```bash
+PICNIC_USERNAME=ihre-email@example.com
+PICNIC_PASSWORD=ihr-passwort
+PICNIC_COUNTRY_CODE=DE
 ```
 
 ### MCP Client Configuration
@@ -367,14 +394,17 @@ PICNIC_API_VERSION=15
       "args": ["-y", "mcp-picnic"],
       "env": {
         "PICNIC_USERNAME": "your-picnic-email@example.com",
-        "PICNIC_PASSWORD": "your-picnic-password"
+        "PICNIC_PASSWORD": "your-picnic-password",
+        "PICNIC_COUNTRY_CODE": "NL"
       }
     }
   }
 }
 ```
 
-**Important**: Replace the placeholder credentials with your actual Picnic account details.
+**Important**:
+- Replace the placeholder credentials with your actual Picnic account details
+- Set `PICNIC_COUNTRY_CODE` to `"DE"` for German accounts, or `"NL"` for Netherlands accounts (default)
 
 **Setup Steps:**
 
@@ -399,12 +429,15 @@ Add to your Continue configuration:
       "args": ["-y", "mcp-picnic"],
       "env": {
         "PICNIC_USERNAME": "your-picnic-email@example.com",
-        "PICNIC_PASSWORD": "your-picnic-password"
+        "PICNIC_PASSWORD": "your-picnic-password",
+        "PICNIC_COUNTRY_CODE": "NL"
       }
     }
   ]
 }
 ```
+
+**Note**: Set `PICNIC_COUNTRY_CODE` to `"DE"` if your account is registered in Germany.
 
 ## Authentication
 
@@ -593,14 +626,17 @@ Voeg deze configuratie toe:
       "args": ["-y", "mcp-picnic"],
       "env": {
         "PICNIC_USERNAME": "jouw-picnic-email@example.com",
-        "PICNIC_PASSWORD": "jouw-picnic-wachtwoord"
+        "PICNIC_PASSWORD": "jouw-picnic-wachtwoord",
+        "PICNIC_COUNTRY_CODE": "NL"
       }
     }
   }
 }
 ```
 
-**Belangrijk**: Vervang `jouw-picnic-email@example.com` en `jouw-picnic-wachtwoord` met je echte Picnic account gegevens.
+**Belangrijk**:
+- Vervang `jouw-picnic-email@example.com` en `jouw-picnic-wachtwoord` met je echte Picnic account gegevens.
+- Stel `PICNIC_COUNTRY_CODE` in op `"DE"` als je Picnic account in Duitsland geregistreerd is. Voor Nederlandse accounts kun je dit veld weglaten of instellen op `"NL"`.
 
 3. **Herstart Claude Desktop** volledig
 
@@ -893,14 +929,17 @@ Fügen Sie diese Konfiguration hinzu:
       "args": ["-y", "mcp-picnic"],
       "env": {
         "PICNIC_USERNAME": "ihre-picnic-email@example.com",
-        "PICNIC_PASSWORD": "ihr-picnic-passwort"
+        "PICNIC_PASSWORD": "ihr-picnic-passwort",
+        "PICNIC_COUNTRY_CODE": "DE"
       }
     }
   }
 }
 ```
 
-**Wichtig**: Ersetzen Sie `ihre-picnic-email@example.com` und `ihr-picnic-passwort` mit Ihren tatsächlichen Picnic-Kontodaten.
+**Wichtig**:
+- Ersetzen Sie `ihre-picnic-email@example.com` und `ihr-picnic-passwort` mit Ihren tatsächlichen Picnic-Kontodaten.
+- Für deutsche Accounts sollte `PICNIC_COUNTRY_CODE` auf `"DE"` gesetzt sein. Für niederländische Accounts setzen Sie es auf `"NL"`.
 
 3. **Starten Sie Claude Desktop** vollständig neu
 
