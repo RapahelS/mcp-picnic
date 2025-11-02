@@ -22,6 +22,121 @@ async function ensureClientInitialized() {
   }
 }
 
+type RawSearchProduct = Record<string, unknown>
+
+function collectSellingUnitsFromNode(node: unknown, bucket: Map<string, RawSearchProduct>) {
+  if (!node) {
+    return
+  }
+
+  if (Array.isArray(node)) {
+    node.forEach((child) => collectSellingUnitsFromNode(child, bucket))
+    return
+  }
+
+  if (typeof node !== "object") {
+    return
+  }
+
+  const obj = node as Record<string, unknown>
+  const content = obj.content as Record<string, unknown> | undefined
+  const candidate =
+    (obj.sellingUnit as RawSearchProduct | undefined) ||
+    (obj.selling_unit as RawSearchProduct | undefined) ||
+    (content ? (content as any).sellingUnit : undefined)
+
+  if (candidate && typeof candidate === "object") {
+    const id =
+      (candidate.id as string | number | undefined) ??
+      ((candidate as any).selling_unit_id as string | number | undefined) ??
+      ((candidate as Record<string, unknown>).article_id as string | number | undefined) ??
+      ((candidate as any).sellingUnitId as string | number | undefined) ??
+      ((candidate as any).product_id as string | number | undefined)
+
+    if (id !== undefined && !bucket.has(String(id))) {
+      bucket.set(String(id), candidate as RawSearchProduct)
+    }
+  }
+
+  for (const value of Object.values(obj)) {
+    collectSellingUnitsFromNode(value, bucket)
+  }
+}
+
+async function fetchStructuredSearchResults(
+  client: ReturnType<typeof getPicnicClient>,
+  query: string,
+): Promise<RawSearchProduct[]> {
+  try {
+    const response = await (client as any).sendRequest(
+      "GET",
+      `/pages/search-page-results?search_term=${encodeURIComponent(query)}`,
+      null,
+      true,
+    )
+
+    const bucket = new Map<string, RawSearchProduct>()
+    collectSellingUnitsFromNode(response, bucket)
+    return Array.from(bucket.values())
+  } catch (error) {
+    console.error("Structured search fallback failed", error)
+    return []
+  }
+}
+
+function normalizeProduct(product: RawSearchProduct) {
+  const anyProduct = product as any
+  const id =
+    (anyProduct.id as string | number | undefined) ??
+    (anyProduct.selling_unit_id as string | number | undefined) ??
+    (anyProduct.article_id as string | number | undefined) ??
+    (anyProduct.sellingUnitId as string | number | undefined) ??
+    (anyProduct.product_id as string | number | undefined)
+
+  if (id === undefined) {
+    return null
+  }
+
+  const rawPrice =
+    (anyProduct.display_price as number | string | undefined) ??
+    (anyProduct.price as number | string | undefined) ??
+    (anyProduct.price_in_cents as number | undefined) ??
+    (anyProduct.priceCents as number | undefined) ??
+    (anyProduct.price_value as number | string | undefined)
+
+  const priceCents = typeof rawPrice === "number" ? Math.round(rawPrice) : undefined
+  const priceFromCents = priceCents !== undefined ? Number((priceCents / 100).toFixed(2)) : undefined
+  const priceFromString =
+    typeof rawPrice === "string"
+      ? Number.parseFloat(rawPrice.replace(",", "."))
+      : undefined
+
+  const imageSource = anyProduct.image?.source as any
+  const imageId =
+    (anyProduct.image_id as string | undefined) ??
+    (anyProduct.imageId as string | undefined) ??
+    (anyProduct.image?.id as string | undefined) ??
+    (imageSource ? (imageSource.id as string | undefined) : undefined)
+
+  return {
+    id: String(id),
+    name:
+      (anyProduct.name as string | undefined) ??
+      (anyProduct.title as string | undefined) ??
+      (anyProduct.displayName as string | undefined) ??
+      null,
+    price: priceFromCents ?? priceFromString ?? null,
+    ...(priceCents !== undefined ? { price_cents: priceCents } : {}),
+    unit:
+      (anyProduct.unit_quantity as string | undefined) ??
+      (anyProduct.unitQuantity as string | undefined) ??
+      (anyProduct.display_quantity as string | undefined) ??
+      (anyProduct.quantity as string | undefined) ??
+      null,
+    ...(imageId ? { image_id: imageId } : {}),
+  }
+}
+
 // Helper function to filter cart data for LLM consumption
 function filterCartData(cart: unknown) {
   if (!cart || typeof cart !== "object") return cart
@@ -92,32 +207,39 @@ toolRegistry.register({
   handler: async (args) => {
     await ensureClientInitialized()
     const client = getPicnicClient()
-    const allResults = await client.search(args.query)
+    let rawResults: RawSearchProduct[] = []
+
+    try {
+      const response = await client.search(args.query)
+      if (Array.isArray(response) && response.length > 0) {
+        rawResults = response as RawSearchProduct[]
+      }
+    } catch (error) {
+      console.error("Primary picnic_search request failed", error)
+    }
+
+    if (rawResults.length === 0) {
+      rawResults = await fetchStructuredSearchResults(client, args.query)
+    }
+
+    const normalizedResults = rawResults
+      .map((product) => normalizeProduct(product))
+      .filter((product): product is NonNullable<typeof product> => Boolean(product))
 
     // Apply pagination
     const startIndex = args.offset || 0
     const limit = args.limit || 5
-    const paginatedResults = allResults.slice(startIndex, startIndex + limit)
-
-    // Filter results to only include essential data for LLM
-    const filteredResults = paginatedResults.map((product) => ({
-      id: product.id,
-      name: product.name,
-      price: product.display_price,
-      unit: product.unit_quantity,
-      // Only include image_id if it exists, for potential image retrieval
-      ...(product.image_id && { image_id: product.image_id }),
-    }))
+    const paginatedResults = normalizedResults.slice(startIndex, startIndex + limit)
 
     return {
       query: args.query,
-      results: filteredResults,
+      results: paginatedResults,
       pagination: {
         offset: startIndex,
         limit,
-        returned: filteredResults.length,
-        total: allResults.length,
-        hasMore: startIndex + limit < allResults.length,
+        returned: paginatedResults.length,
+        total: normalizedResults.length,
+        hasMore: startIndex + limit < normalizedResults.length,
       },
     }
   },
